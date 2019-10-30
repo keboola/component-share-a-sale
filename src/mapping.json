@@ -1,0 +1,44 @@
+{
+    "activity": {
+        "name": "activity_details",
+        "date_required": true,
+        "keyword_required": false,
+        "primary_key": [
+            "Trans_ID",
+            "Trans_Date"
+        ]
+    },
+    "activitySummary": {
+        "name": "activity_summary",
+        "date_required": false,
+        "keyword_required": false,
+        "primary_key": [
+            "Merchant_Id"
+        ]
+    },
+    "merchantTimespan": {
+        "name": "merchant_timespan",
+        "date_required": true,
+        "keyword_required": false,
+        "primary_key": [
+            "Merchant"
+        ]
+    },
+    "traffic": {
+        "name": "traffic",
+        "date_required": true,
+        "keyword_required": false,
+        "primary_key": [
+            "merchantID"
+        ]
+    },
+    "getProducts": {
+        "name": "get_products",
+        "date_required": false,
+        "keyword_required": true,
+        "primary_key": [
+            "productId",
+            "Merchant_Id"
+        ]
+    }
+}

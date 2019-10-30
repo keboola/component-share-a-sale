@@ -1,0 +1,156 @@
+{
+    "type": "object",
+    "title": "Configuration",
+    "required": [
+        "affiliate_id",
+        "#token",
+        "#secret_key",
+        "endpoint",
+        "backfill_mode"
+    ],
+    "default": {
+        "backfill_mode": "#/definitions/disable"
+    },
+    "properties": {
+        "affiliate_id": {
+            "type": "string",
+            "title": "Affiliate ID",
+            "propertyOrder": 100,
+            "minLength": 1
+        },
+        "#token": {
+            "type": "string",
+            "title": "Token",
+            "propertyOrder": 200,
+            "minLenght": 1
+        },
+        "#secret_key": {
+            "type": "string",
+            "title": "API Secret",
+            "propertyOrder": 300,
+            "minLength": 1
+        },
+        "endpoint": {
+            "type": "array",
+            "title": "Endpoint",
+            "uniqueItems": true,
+            "format": "table",
+            "items": {
+                "type": "object",
+                "title": "Endpoint",
+                "properties": {
+                    "endpoint": {
+                        "enum": [
+                            "activity",
+                            "activitySummary",
+                            "merchantTimespan",
+                            "traffic",
+                            "getProducts"
+                        ],
+                        "type": "string",
+                        "options": {
+                            "enum_titles": [
+                                "Activity Details",
+                                "Activity Summary",
+                                "Merchant Timespan Report",
+                                "Traffic",
+                                "Get Products"
+                            ]
+                        }
+                    }
+                }
+            },
+            "minItems": 1,
+            "propertyOrder": 400
+        },
+        "keyword": {
+            "type": "string",
+            "title": "Keyword",
+            "description": "This is needed for [Get Products] endpoint only. One extractor configuration will only accept one keyword. Input can either be a word or a phase.",
+            "default": "",
+            "propertyOrder": 450
+        },
+        "backfill_mode": {
+            "title": "Backfill",
+            "propertyOrder": 500,
+            "type": "object",
+            "oneOf": [
+                {
+                    "$ref": "#/definitions/disable"
+                },
+                {
+                    "$ref": "#/definitions/enable"
+                }
+            ],
+            "description": "Please enter Start and End date if Backfill mode is enabled. If not, extractor will automatically define date range to yesterday. On the other hand, please avoid running backfill on multiple endpoints as there will be a possibility that it will flood the component's memory capacity. Please run 1 or 2 endpoint only when backfill mode is enabled.",
+            "additionalProperties": false
+        }
+    },
+    "definitions": {
+        "disable": {
+            "title": "Disable",
+            "type": "object",
+            "required": [
+                "backfill"
+            ],
+            "properties": {
+                "backfill": {
+                    "enum": [
+                        "disable"
+                    ],
+                    "type": "string",
+                    "title": "Backfill Mode",
+                    "default": "disable",
+                    "readOnly": true,
+                    "options": {
+                        "enum_titles": [
+                            "Disable"
+                        ]
+                    }
+                }
+            }
+        },
+        "enable": {
+            "title": "Enable",
+            "type": "object",
+            "required": [
+                "backfill",
+                "start_date",
+                "end_date"
+            ],
+            "properties": {
+                "backfill": {
+                    "enum": [
+                        "enable"
+                    ],
+                    "type": "string",
+                    "title": "Backfill Mode",
+                    "default": "enable",
+                    "readOnly": true,
+                    "propertyOrder": 100,
+                    "options": {
+                        "enum_titles": [
+                            "Enable"
+                        ]
+                    }
+                },
+                "start_date": {
+                    "type": "string",
+                    "title": "Start Date",
+                    "default": "2019-01-01",
+                    "description": "Input Format: YYYY-MM-DD",
+                    "propertyOrder": 200,
+                    "minLength": 1
+                },
+                "end_date": {
+                    "type": "string",
+                    "title": "End Date",
+                    "default": "2019-01-01",
+                    "description": "Input Format: YYYY-MM-DD",
+                    "propertyOrder": 300,
+                    "minLength": 1
+                }
+            }
+        }
+    }
+}
