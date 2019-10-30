@@ -252,7 +252,8 @@ class Component(KBCEnvHandler):
                     f.write(data_in)
                 f.close()
 
-                self.produce_manifest(output_file_name, endpoint_config['primary_key'])
+                self.produce_manifest(
+                    output_file_name, endpoint_config['primary_key'])
 
         logging.info("Extraction finished")
 
