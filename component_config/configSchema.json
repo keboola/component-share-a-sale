@@ -6,6 +6,7 @@
         "#token",
         "#secret_key",
         "endpoint",
+        "keyword",
         "backfill_mode"
     ],
     "default": {
