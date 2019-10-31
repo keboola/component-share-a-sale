@@ -83,7 +83,7 @@
                     "$ref": "#/definitions/enable"
                 }
             ],
-            "description": "Please enter Start and End date if Backfill mode is enabled. If not, extractor will automatically define date range to yesterday. On the other hand, please avoid running backfill on multiple endpoints as there will be a possibility that it will flood the component's memory capacity. Please run 1 or 2 endpoint only when backfill mode is enabled.",
+            "description": "Please enter Start and End date if Backfill mode is enabled. If not, extractor will automatically define date range to last 7 days. On the other hand, please avoid running backfill on multiple endpoints as there will be a possibility that it will flood the component's memory capacity. Please run 1 or 2 endpoint only when backfill mode is enabled.",
             "additionalProperties": false
         }
     },

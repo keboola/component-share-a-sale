@@ -10,6 +10,7 @@ import sys
 import os
 import datetime  # noqa
 import dateparser
+import csv
 import json
 import requests
 from urllib.parse import urlencode
@@ -63,7 +64,6 @@ if 'KBC_LOGGER_ADDR' in os.environ and 'KBC_LOGGER_PORT' in os.environ:
     logger.removeHandler(logger.handlers[0])
 
 APP_VERSION = '0.0.1'
-print(socket.gethostbyname(socket.gethostname()))
 
 
 class Component(KBCEnvHandler):
@@ -129,6 +129,28 @@ class Component(KBCEnvHandler):
 
         return request_header, request_body_encoded
 
+    def dates_request(self, start_date, end_date):
+        '''
+        Returns a list of dataes within the given range
+        '''
+
+        dates = []
+        start_date_form = dateparser.parse(start_date)
+        end_date_form = dateparser.parse(end_date)
+        day_diff = (end_date_form-start_date_form).days
+        temp_date = start_date_form
+        day_n = 0
+        if day_diff == 0:
+            dates.append(temp_date.strftime('%m/%d/%Y'))
+        while day_n < day_diff:
+            dates.append(temp_date.strftime('%m/%d/%Y'))
+            temp_date += datetime.timedelta(days=1)
+            day_n += 1
+            if day_n == day_diff:
+                dates.append(temp_date.strftime('%m/%d/%Y'))
+
+        return dates
+
     def generate_date(self, backfill_mode):
         '''
         Generate set of startDate and endDate for all requests
@@ -144,10 +166,10 @@ class Component(KBCEnvHandler):
             start_date = dateparser.parse(backfill_mode['start_date'])
             end_date = dateparser.parse(backfill_mode['end_date'])
         else:
-            # start_date = dateparser.parse('7 days ago')
-            # end_date = dateparser.parse('today')
-            start_date = dateparser.parse('yesterday')
-            end_date = dateparser.parse('yesterday')
+            start_date = dateparser.parse('7 days ago')
+            end_date = dateparser.parse('today')
+            # start_date = dateparser.parse('yesterday')
+            # end_date = dateparser.parse('yesterday')
 
         if start_date > end_date:
             logging.error(
@@ -163,9 +185,15 @@ class Component(KBCEnvHandler):
 
         return date_object
 
-    def produce_manifest(self, file_name, primary_key):
+    def produce_manifest(self, file_name, primary_key, columns=None):
         """
         Dummy function to return header per file type.
+        Parameters:
+            1. file_name
+            2. primary_key
+            3. columns
+                - the columns names in KBC
+                - the output files have to be headerless
         """
 
         file = file_name + '.manifest'
@@ -177,6 +205,8 @@ class Component(KBCEnvHandler):
             # ,"delimiter": "|"
             # ,"enclosure": ""
         }
+        if columns:
+            manifest['columns'] = columns
 
         try:
             with open(file, 'w') as file_out:
@@ -187,6 +217,87 @@ class Component(KBCEnvHandler):
             logging.error(e)
 
         return
+
+    def output_file(self, file_name, data_in, skip_header=False, expected_header=[], add_date_column=None):
+        '''
+        Output method for files that need custom headers
+        Parameters:
+            1. skip_header
+                - skipping header row in the data file
+            2. expected_header
+                - expected headers for the output file
+            3. add_date_column
+                - for files that need to add a new column, date
+        '''
+
+        log_msg = file_name
+        if add_date_column:
+            log_msg = '{}-{}'.format(file_name, add_date_column)
+        logging.info('Outputting [{}]...'.format(log_msg))
+        with open(file_name, 'a') as f:
+            if skip_header:
+                writer = csv.writer(f)
+                temp_data = csv.reader(data_in.splitlines())
+                header = next(temp_data)
+                if add_date_column:
+                    header.append(add_date_column)
+                # Header Validation
+                if len(header) != len(expected_header):
+                    logging.error(
+                        "There are more columns than expected columns for [{}]".format(file_name))
+                    logging.error("New columns: {}".format(
+                        header-expected_header))
+                    logging.error("Please contact support.")
+                    sys.exit(1)
+                for row in temp_data:
+                    if add_date_column:
+                        row.append(add_date_column)
+                    writer.writerow(row)
+            else:
+                f.write(data_in)
+        f.close()
+
+    def output_process(self, data_in, endpoint, endpoint_config, date_column=''):
+        '''
+        Request Output Validation
+        Issue: 
+            1.  all requests will return 200 regardless invalid parameters
+                If there is only one row, assuming it is an error message
+            2.  If endpoint is merchant_timespan, will need to break up
+                the output file as sliced files
+        Parameters:
+            date_column
+                - to handle any files that need to have a extra column value
+        '''
+
+        num_of_rows = len(data_in.splitlines())
+        if num_of_rows == 1 and endpoint != 'getProducts' and endpoint != 'merchantTimespan':
+            logging.error(
+                'Endpoint request failed: [{}]; Error message: [{}]'.format(endpoint, data_in))
+            logging.error('Please contact support.')
+            sys.exit(1)
+        elif endpoint == 'getProducts':
+            output_file_name = '{0}{1}.csv'.format(
+                DEFAULT_TABLE_DESTINATION, endpoint_config['name'])
+            expected_header = endpoint_config['columns']
+            self.output_file(output_file_name, data_in,
+                             skip_header=True, expected_header=expected_header)
+            self.produce_manifest(
+                output_file_name, endpoint_config['primary_key'], expected_header)
+        elif endpoint == 'merchantTimespan':
+            output_file_name = '{0}{1}.csv'.format(
+                DEFAULT_TABLE_DESTINATION, endpoint_config['name'])
+            expected_header = endpoint_config['columns']
+            self.output_file(output_file_name, data_in,
+                             skip_header=True, expected_header=expected_header, add_date_column=date_column)
+            self.produce_manifest(
+                output_file_name, endpoint_config['primary_key'], expected_header)
+        else:
+            output_file_name = '{0}{1}.csv'.format(
+                DEFAULT_TABLE_DESTINATION, endpoint_config['name'])
+            self.output_file(output_file_name, data_in)
+            self.produce_manifest(
+                output_file_name, endpoint_config['primary_key'])
 
     def run(self):
         '''
@@ -227,33 +338,29 @@ class Component(KBCEnvHandler):
                         'A keyword value is required for [{}]. Please enter a keyword or phrase.'.format(endpoint))
                     sys.exit(1)
                 keyword_to_request = keyword
-            request_header, request_body = self.generate_signature(
-                endpoint=endpoint, date_object=date_to_request, keyword=keyword_to_request)
 
-            request_url = base_url+'?'+request_body
-            data_in = self.get_request(request_url, request_header)
-
-            # Request Output Validation
-            # Issue: all requests will return 200 regardless invalid parameters
-            # If there is only one row, assuming it is an error message
-            num_of_rows = len(data_in.splitlines())
-            if num_of_rows == 1 and endpoint != 'getProducts':
-                logging.error(
-                    'Endpoint request failed: [{}]; Error message: [{}]'.format(endpoint, data_in))
-                logging.error('Please contact support.')
-                sys.exit(1)
+            if endpoint == 'merchantTimespan':
+                date_range = self.dates_request(request_date['dateStart'], request_date[
+                    'dateEnd'
+                ])
+                for date in date_range:
+                    temp_date_obj = {
+                        'dateStart': date,
+                        'dateEnd': date
+                    }
+                    request_header, request_body = self.generate_signature(
+                        endpoint=endpoint, date_object=temp_date_obj, keyword=keyword_to_request)
+                    request_url = base_url+'?'+request_body
+                    data_in = self.get_request(request_url, request_header)
+                    self.output_process(data_in, endpoint,
+                                        endpoint_config, date)
 
             else:
-                output_file_name = '{0}{1}.csv'.format(
-                    DEFAULT_TABLE_DESTINATION, endpoint_config['name'])
-
-                with open(output_file_name, 'w') as f:
-                    logging.info('Outputting [{}]...'.format(output_file_name))
-                    f.write(data_in)
-                f.close()
-
-                self.produce_manifest(
-                    output_file_name, endpoint_config['primary_key'])
+                request_header, request_body = self.generate_signature(
+                    endpoint=endpoint, date_object=date_to_request, keyword=keyword_to_request)
+                request_url = base_url+'?'+request_body
+                data_in = self.get_request(request_url, request_header)
+                self.output_process(data_in, endpoint, endpoint_config)
 
         logging.info("Extraction finished")
 
