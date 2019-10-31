@@ -308,7 +308,7 @@ class Component(KBCEnvHandler):
             logging.error('Please enter required parameters: Affiliate ID, Token, Secret Key')
             sys.exit(1)
         if len(endpoints) == 0:
-            logging.error('Please specify interested endpoints.')
+            logging.error('Please specify interested [Endpoints].')
             sys.exit(1)
 
         logging.info(
