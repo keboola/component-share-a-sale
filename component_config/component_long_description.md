@@ -1,2 +1,2 @@
-Testing functional sample extractor for purposes of the python component template. 
-Implements partial Hubspot extractor using the public sandbox token.
+ShareASale is an affiliate marketing network that services customer sets in affiliate marketing. It aids affiliates to find products to promote and earn commission for referrals on those products, while it aids merchants to implement, track and manage their affiliate program. 
+The purpose of this extractor is to extractor all the related affiliates/merchants activity details and summary and their related products.

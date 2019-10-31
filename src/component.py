@@ -259,6 +259,7 @@ class Component(KBCEnvHandler):
     def output_process(self, data_in, endpoint, endpoint_config, date_column=''):
         '''
         Request Output Validation
+        Defining output method based on endpoint selected
         Issue:
             1.  all requests will return 200 regardless invalid parameters
                 If there is only one row, assuming it is an error message
@@ -342,6 +343,7 @@ class Component(KBCEnvHandler):
                 date_range = self.dates_request(request_date['dateStart'], request_date[
                     'dateEnd'
                 ])
+                # Looping thru the dates in the date range for daily stats
                 for date in date_range:
                     temp_date_obj = {
                         'dateStart': date,

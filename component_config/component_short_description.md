@@ -1,1 +1,1 @@
-Testing functional sample extractor for purposes of the python component template. 
+An affiliate marketing network to aid affiliates find products to promote and aid merchants to implement, track, and manage their affiliate program

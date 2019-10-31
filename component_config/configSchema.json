@@ -67,7 +67,7 @@
         "keyword": {
             "type": "string",
             "title": "Keyword",
-            "description": "This is needed for [Get Products] endpoint only. One extractor configuration will only accept one keyword. Input can either be a word or a phase.",
+            "description": "This is needed for [Get Products] endpoint only. One extractor configuration will only accept one keyword. Input can either be a word or a phrase.",
             "default": "",
             "propertyOrder": 450
         },

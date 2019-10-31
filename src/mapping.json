@@ -65,7 +65,8 @@
         "keyword_required": true,
         "primary_key": [
             "productId",
-            "Merchant_Id"
+            "Merchant_Id",
+            "keyword"
         ],
         "columns": [
             "productId",
