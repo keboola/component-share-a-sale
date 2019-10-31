@@ -27,6 +27,7 @@ KEY_AFFILIATE_ID = 'affiliate_id'
 KEY_TOKEN = '#token'
 KEY_SECRET_KEY = '#secret_key'
 KEY_ENDPOINT = 'endpoint'
+KEY_KEYWORD = 'keyword'
 KEY_BACKFILL_MODE = 'backfill_mode'
 
 MANDATORY_PARS = [
@@ -34,6 +35,7 @@ MANDATORY_PARS = [
     KEY_TOKEN,
     KEY_SECRET_KEY,
     KEY_ENDPOINT,
+    KEY_KEYWORD,
     KEY_BACKFILL_MODE
 ]
 MANDATORY_IMAGE_PARS = []
@@ -165,10 +167,8 @@ class Component(KBCEnvHandler):
             start_date = dateparser.parse(backfill_mode['start_date'])
             end_date = dateparser.parse(backfill_mode['end_date'])
         else:
-            start_date = dateparser.parse('7 days ago')
+            start_date = dateparser.parse('2 days ago')
             end_date = dateparser.parse('today')
-            # start_date = dateparser.parse('yesterday')
-            # end_date = dateparser.parse('yesterday')
 
         if start_date > end_date:
             logging.error(
@@ -196,13 +196,8 @@ class Component(KBCEnvHandler):
         """
 
         file = file_name + '.manifest'
-        manifest = {  # "source": "myfile.csv"
-            # ,"destination": "in.c-mybucket.table"
-            # "incremental": True
+        manifest = {
             "primary_key": primary_key
-            # ,"columns": [""]
-            # ,"delimiter": "|"
-            # ,"enclosure": ""
         }
         if columns:
             manifest['columns'] = columns
@@ -215,8 +210,6 @@ class Component(KBCEnvHandler):
             logging.error("Could not produce output file manifest.")
             logging.error(e)
 
-        return
-
     def output_file(self, file_name, data_in, skip_header=False, expected_header=[], add_date_column=None):
         '''
         Output method for files that need custom headers
@@ -226,7 +219,7 @@ class Component(KBCEnvHandler):
             2. expected_header
                 - expected headers for the output file
             3. add_date_column
-                - for files that need to add a new column, date
+                - for files that need to add a new column, date, keyword
         '''
 
         log_msg = file_name
@@ -268,6 +261,7 @@ class Component(KBCEnvHandler):
         Parameters:
             date_column
                 - to handle any files that need to have a extra column value
+                - does not have to be a date, can be a keyword column for getProducts
         '''
 
         num_of_rows = len(data_in.splitlines())
@@ -276,7 +270,8 @@ class Component(KBCEnvHandler):
                 'Endpoint request failed: [{}]; Error message: [{}]'.format(endpoint, data_in))
             logging.error('Please contact support.')
             sys.exit(1)
-        elif endpoint == 'getProducts':
+
+        elif endpoint == 'getProducts' or endpoint == 'merchantTimespan':
             output_file_name = '{0}{1}.csv'.format(
                 DEFAULT_TABLE_DESTINATION, endpoint_config['name'])
             expected_header = endpoint_config['columns']
@@ -284,14 +279,7 @@ class Component(KBCEnvHandler):
                              skip_header=True, expected_header=expected_header, add_date_column=date_column)
             self.produce_manifest(
                 output_file_name, endpoint_config['primary_key'], expected_header)
-        elif endpoint == 'merchantTimespan':
-            output_file_name = '{0}{1}.csv'.format(
-                DEFAULT_TABLE_DESTINATION, endpoint_config['name'])
-            expected_header = endpoint_config['columns']
-            self.output_file(output_file_name, data_in,
-                             skip_header=True, expected_header=expected_header, add_date_column=date_column)
-            self.produce_manifest(
-                output_file_name, endpoint_config['primary_key'], expected_header)
+
         else:
             output_file_name = '{0}{1}.csv'.format(
                 DEFAULT_TABLE_DESTINATION, endpoint_config['name'])
@@ -314,6 +302,15 @@ class Component(KBCEnvHandler):
         backfill_mode = params['backfill_mode']
         request_date = self.generate_date(backfill_mode)
         base_url = 'https://api.shareasale.com/x.cfm'
+
+        # Validating user inputs
+        if self.affiliate_id == '' or self.token == '' or self.secret_key == '':
+            logging.error('Please enter required parameters: Affiliate ID, Token, Secret Key')
+            sys.exit(1)
+        if len(endpoints) == 0:
+            logging.error('Please specify interested endpoints.')
+            sys.exit(1)
+
         logging.info(
             "Request date range: {0} - {1}".format(request_date['dateStart'], request_date['dateEnd']))
 
@@ -361,7 +358,8 @@ class Component(KBCEnvHandler):
                     endpoint=endpoint, date_object=date_to_request, keyword=keyword_to_request)
                 request_url = base_url+'?'+request_body
                 data_in = self.get_request(request_url, request_header)
-                self.output_process(data_in, endpoint, endpoint_config, keyword_to_request)
+                self.output_process(data_in, endpoint,
+                                    endpoint_config, keyword_to_request)
 
         logging.info("Extraction finished")
 

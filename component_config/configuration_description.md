@@ -38,11 +38,11 @@ Users are required to gauage their own API usage. It is also mandatory for users
     - Input can either entered as a word or a phrase
 6. Backfill Mode
     - Start date and end date parameter is needed when backfill mode is enabled
-    - In normal extraction, extractor will automatically define request date range to last 7 days
-    - Please avoid running backfill on multiple endpoints as there will be a possibility that it will flood the component's memory capacity
+    - In normal extraction, extractor will automatically define request date range to last 2 days
     - Endpoints affected by Backfill Mode:
 
         1. Activity Details
         2. Merhant Timespan Report
         3. Traffic
+    - Endpoints not affected by backfill mode means that the API returns from these endpoints are not bounded by date range. The API is either outputting the summary of the related matter or the current value/description of the subject.
 
