@@ -16,7 +16,6 @@ import requests
 from urllib.parse import urlencode
 import hashlib
 from time import strftime, gmtime
-import socket
 
 from kbc.env_handler import KBCEnvHandler
 from kbc.result import KBCTableDef  # noqa
