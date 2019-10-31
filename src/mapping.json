@@ -139,7 +139,8 @@
             "Ave_Comm_7_Day",
             "Ave_Comm_30_Day",
             "Powerrank_Top_100",
-            "Store_Id"
+            "Store_Id",
+            "keyword"
         ]
     }
 }

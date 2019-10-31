@@ -280,7 +280,7 @@ class Component(KBCEnvHandler):
                 DEFAULT_TABLE_DESTINATION, endpoint_config['name'])
             expected_header = endpoint_config['columns']
             self.output_file(output_file_name, data_in,
-                             skip_header=True, expected_header=expected_header)
+                             skip_header=True, expected_header=expected_header, add_date_column=date_column)
             self.produce_manifest(
                 output_file_name, endpoint_config['primary_key'], expected_header)
         elif endpoint == 'merchantTimespan':
@@ -359,7 +359,7 @@ class Component(KBCEnvHandler):
                     endpoint=endpoint, date_object=date_to_request, keyword=keyword_to_request)
                 request_url = base_url+'?'+request_body
                 data_in = self.get_request(request_url, request_header)
-                self.output_process(data_in, endpoint, endpoint_config)
+                self.output_process(data_in, endpoint, endpoint_config, keyword_to_request)
 
         logging.info("Extraction finished")
 
