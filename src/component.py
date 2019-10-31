@@ -259,7 +259,7 @@ class Component(KBCEnvHandler):
     def output_process(self, data_in, endpoint, endpoint_config, date_column=''):
         '''
         Request Output Validation
-        Issue: 
+        Issue:
             1.  all requests will return 200 regardless invalid parameters
                 If there is only one row, assuming it is an error message
             2.  If endpoint is merchant_timespan, will need to break up
