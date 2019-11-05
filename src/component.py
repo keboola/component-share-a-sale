@@ -294,6 +294,12 @@ class Component(KBCEnvHandler):
 
         # Credentials and request params
         params = self.cfg_params  # noqa
+        # Validating if there are any params:
+        if params == {}:
+            logging.error('Please enter and save your required parameters.')
+            sys.exit(1)
+
+        # Component configuration parameters
         self.affiliate_id = params['affiliate_id']
         self.token = params['#token']
         self.secret_key = params['#secret_key']
@@ -305,7 +311,8 @@ class Component(KBCEnvHandler):
 
         # Validating user inputs
         if self.affiliate_id == '' or self.token == '' or self.secret_key == '':
-            logging.error('Please enter required parameters: Affiliate ID, Token, Secret Key')
+            logging.error(
+                'Please enter required parameters: Affiliate ID, Token, Secret Key')
             sys.exit(1)
         if len(endpoints) == 0:
             logging.error('Please specify interested [Endpoints].')
