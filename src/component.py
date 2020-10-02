@@ -271,7 +271,7 @@ class Component(KBCEnvHandler):
             logging.error('Please contact support.')
             sys.exit(1)
 
-        elif endpoint == 'getProducts' or endpoint == 'merchantTimespan':
+        elif endpoint == 'getProducts' or endpoint == 'merchantTimespan' or endpoint == 'traffic':
             output_file_name = '{0}{1}.csv'.format(
                 DEFAULT_TABLE_DESTINATION, endpoint_config['name'])
             expected_header = endpoint_config['columns']
@@ -343,7 +343,7 @@ class Component(KBCEnvHandler):
                     sys.exit(1)
                 keyword_to_request = keyword
 
-            if endpoint == 'merchantTimespan':
+            if endpoint == 'merchantTimespan' or endpoint == 'traffic':
                 date_range = self.dates_request(request_date['dateStart'], request_date[
                     'dateEnd'
                 ])

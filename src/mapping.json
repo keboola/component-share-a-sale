@@ -56,7 +56,21 @@
         "date_required": true,
         "keyword_required": false,
         "primary_key": [
-            "merchantID"
+            "merchantID",
+            "date"
+        ],
+        "columns": [
+            "merchantID",
+            "organization",
+            "website",
+            "uniqueHits",
+            "Commissions",
+            "netSales",
+            "numberOfVoids",
+            "numberOfSales",
+            "conversion",
+            "epc",
+            "date"
         ]
     },
     "getProducts": {
