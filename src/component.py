@@ -210,7 +210,7 @@ class Component(KBCEnvHandler):
         try:
             with open(file, 'w') as file_out:
                 json.dump(manifest, file_out)
-                logging.info("Output manifest file produced.")
+                logging.info(f"Output manifest file [{file_name}]produced.")
         except Exception as e:
             logging.error("Could not produce output file manifest.")
             logging.error(e)
@@ -284,33 +284,29 @@ class Component(KBCEnvHandler):
         '''
 
         num_of_rows = len(data_in.splitlines())
-        # if num_of_rows == 1 and endpoint != 'getProducts' and endpoint != 'merchantTimespan':
+
         if num_of_rows == 1 and endpoint not in ['getProducts', 'merchantTimespan', 'traffic_by_afftrack']:
             logging.error(
                 'Endpoint request failed: [{}]; Error message: [{}]'.format(endpoint, data_in))
             logging.error('Please contact support.')
             sys.exit(1)
 
-        elif endpoint == 'getProducts' or endpoint == 'merchantTimespan' or endpoint == 'traffic':
+        elif endpoint in ['getProducts', 'merchantTimespan', 'traffic', 'traffic_by_afftrack']:
             output_file_name = '{0}{1}.csv'.format(
                 DEFAULT_TABLE_DESTINATION, endpoint_config['name'])
             expected_header = endpoint_config['columns']
-            self.output_file(output_file_name, data_in,
-                             skip_header=True,
-                             expected_header=expected_header,
-                             add_date_column=date_column)
-            self.produce_manifest(
-                output_file_name, endpoint_config['primary_key'], expected_header)
 
-        elif endpoint == 'traffic_by_afftrack':
-            output_file_name = '{0}{1}.csv'.format(
-                DEFAULT_TABLE_DESTINATION, endpoint_config['name'])
-            expected_header = endpoint_config['columns']
-            self.output_file(output_file_name, data_in,
-                             skip_header=True,
-                             expected_header=expected_header,
-                             add_date_column=date_column,
-                             add_merchantId_column=merchantId)
+            if endpoint in ['traffic_by_afftrack']:
+                self.output_file(output_file_name, data_in,
+                                 skip_header=True,
+                                 expected_header=expected_header,
+                                 add_date_column=date_column,
+                                 add_merchantId_column=merchantId)
+            else:
+                self.output_file(output_file_name, data_in,
+                                 skip_header=True,
+                                 expected_header=expected_header,
+                                 add_date_column=date_column)
             self.produce_manifest(
                 output_file_name, endpoint_config['primary_key'], expected_header)
 

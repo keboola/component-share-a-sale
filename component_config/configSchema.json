@@ -77,9 +77,9 @@
         "incremental_period": {
             "type": "string",
             "title": "Incremental Period",
-            "default": "2 days ago",
+            "default": "1 days ago",
             "propertyOrder": 600,
-            "description": "Default: 2 days ago; Users are allowed to define the incremental period they want the extractor to fetch. Please leave this at default settings if adjustments are not necessary."
+            "description": "Default: 1 day ago; Users are allowed to define the incremental period they want the extractor to fetch. Please leave this at default settings if adjustments are not necessary."
         },
         "backfill_mode": {
             "title": "Backfill",
@@ -93,7 +93,7 @@
                     "$ref": "#/definitions/enable"
                 }
             ],
-            "description": "Please enter Start and End date if Backfill mode is enabled. If not, extractor will automatically define date range to last 2 days. On the other hand, please avoid running backfill on multiple endpoints as there will be a possibility that it will flood the component's memory capacity. Please run 1 or 2 endpoint only when backfill mode is enabled.",
+            "description": "Please enter Start and End date if Backfill mode is enabled. If not, extractor will automatically define date range to last 1 day. On the other hand, please avoid running backfill on multiple endpoints as there will be a possibility that it will flood the component's memory capacity. Please run 1 or 2 endpoint only when backfill mode is enabled.",
             "additionalProperties": false
         }
     },
