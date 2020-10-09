@@ -16,6 +16,7 @@ import requests
 from urllib.parse import urlencode
 import hashlib
 from time import strftime, gmtime
+import pandas as pd
 
 from kbc.env_handler import KBCEnvHandler
 from kbc.result import KBCTableDef  # noqa
@@ -28,6 +29,7 @@ KEY_TOKEN = '#token'
 KEY_SECRET_KEY = '#secret_key'
 KEY_ENDPOINT = 'endpoint'
 KEY_KEYWORD = 'keyword'
+KEY_INCREMENTAL_PERIOD = 'incremental_period'
 KEY_BACKFILL_MODE = 'backfill_mode'
 
 MANDATORY_PARS = [
@@ -36,6 +38,7 @@ MANDATORY_PARS = [
     KEY_SECRET_KEY,
     KEY_ENDPOINT,
     KEY_KEYWORD,
+    KEY_INCREMENTAL_PERIOD,
     KEY_BACKFILL_MODE
 ]
 MANDATORY_IMAGE_PARS = []
@@ -117,6 +120,7 @@ class Component(KBCEnvHandler):
                 request_body[i] = date_object[i]
         if keyword:
             request_body['keyword'] = keyword
+
         request_body_encoded = urlencode(request_body)
 
         # Request Header
@@ -152,7 +156,7 @@ class Component(KBCEnvHandler):
 
         return dates
 
-    def generate_date(self, backfill_mode):
+    def generate_date(self, backfill_mode, incremental_period):
         '''
         Generate set of startDate and endDate for all requests
         '''
@@ -167,7 +171,8 @@ class Component(KBCEnvHandler):
             start_date = dateparser.parse(backfill_mode['start_date'])
             end_date = dateparser.parse(backfill_mode['end_date'])
         else:
-            start_date = dateparser.parse('2 days ago')
+            # start_date = dateparser.parse('2 days ago')
+            start_date = dateparser.parse(incremental_period)
             end_date = dateparser.parse('today')
 
         if start_date > end_date:
@@ -210,7 +215,9 @@ class Component(KBCEnvHandler):
             logging.error("Could not produce output file manifest.")
             logging.error(e)
 
-    def output_file(self, file_name, data_in, skip_header=False, expected_header=[], add_date_column=None):
+    def output_file(self, file_name, data_in, skip_header=False, expected_header=[],
+                    add_date_column=None,
+                    add_merchantId_column=None):
         '''
         Output method for files that need custom headers
         Parameters:
@@ -220,6 +227,8 @@ class Component(KBCEnvHandler):
                 - expected headers for the output file
             3. add_date_column
                 - for files that need to add a new column, date, keyword
+            4. add_merchantId_column
+                - for endpoints that required to request merchantId as an additiaon parameter
         '''
 
         log_msg = file_name
@@ -231,8 +240,13 @@ class Component(KBCEnvHandler):
                 writer = csv.writer(f)
                 temp_data = csv.reader(data_in.splitlines())
                 header = next(temp_data)
+
+                # Appending parent_id column
+                if add_merchantId_column:
+                    header.append(add_merchantId_column)
                 if add_date_column:
                     header.append(add_date_column)
+
                 # Header Validation
                 if len(header) != len(expected_header):
                     logging.error(
@@ -241,7 +255,10 @@ class Component(KBCEnvHandler):
                         header-expected_header))
                     logging.error("Please contact support.")
                     sys.exit(1)
+
                 for row in temp_data:
+                    if add_merchantId_column:
+                        row.append(add_merchantId_column)
                     if add_date_column:
                         row.append(add_date_column)
                     writer.writerow(row)
@@ -249,7 +266,7 @@ class Component(KBCEnvHandler):
                 f.write(data_in)
         f.close()
 
-    def output_process(self, data_in, endpoint, endpoint_config, date_column=''):
+    def output_process(self, data_in, endpoint, endpoint_config, date_column='', merchantId=''):
         '''
         Request Output Validation
         Defining output method based on endpoint selected
@@ -262,10 +279,13 @@ class Component(KBCEnvHandler):
             date_column
                 - to handle any files that need to have a extra column value
                 - does not have to be a date, can be a keyword column for getProducts
+            merchantId
+                - to handle any endpoints that need to send in additiaon merchantId as a parameter
         '''
 
         num_of_rows = len(data_in.splitlines())
-        if num_of_rows == 1 and endpoint != 'getProducts' and endpoint != 'merchantTimespan':
+        # if num_of_rows == 1 and endpoint != 'getProducts' and endpoint != 'merchantTimespan':
+        if num_of_rows == 1 and endpoint not in ['getProducts', 'merchantTimespan', 'traffic_by_afftrack']:
             logging.error(
                 'Endpoint request failed: [{}]; Error message: [{}]'.format(endpoint, data_in))
             logging.error('Please contact support.')
@@ -276,7 +296,21 @@ class Component(KBCEnvHandler):
                 DEFAULT_TABLE_DESTINATION, endpoint_config['name'])
             expected_header = endpoint_config['columns']
             self.output_file(output_file_name, data_in,
-                             skip_header=True, expected_header=expected_header, add_date_column=date_column)
+                             skip_header=True,
+                             expected_header=expected_header,
+                             add_date_column=date_column)
+            self.produce_manifest(
+                output_file_name, endpoint_config['primary_key'], expected_header)
+
+        elif endpoint == 'traffic_by_afftrack':
+            output_file_name = '{0}{1}.csv'.format(
+                DEFAULT_TABLE_DESTINATION, endpoint_config['name'])
+            expected_header = endpoint_config['columns']
+            self.output_file(output_file_name, data_in,
+                             skip_header=True,
+                             expected_header=expected_header,
+                             add_date_column=date_column,
+                             add_merchantId_column=merchantId)
             self.produce_manifest(
                 output_file_name, endpoint_config['primary_key'], expected_header)
 
@@ -306,8 +340,14 @@ class Component(KBCEnvHandler):
         endpoints = params['endpoint']
         keyword = params['keyword']
         backfill_mode = params['backfill_mode']
-        request_date = self.generate_date(backfill_mode)
+        incremental_period = params[KEY_INCREMENTAL_PERIOD]
+        request_date = self.generate_date(backfill_mode, incremental_period)
         base_url = 'https://api.shareasale.com/x.cfm'
+        # Input Tables
+        self.input_tables = []
+        for i in self.configuration.get_input_tables():
+            table_full_path = i['full_path']
+            self.input_tables.append(table_full_path)
 
         # Validating user inputs
         if self.affiliate_id == '' or self.token == '' or self.secret_key == '':
@@ -315,8 +355,25 @@ class Component(KBCEnvHandler):
                 'Please enter required parameters: Affiliate ID, Token, Secret Key')
             sys.exit(1)
         if len(endpoints) == 0:
-            logging.error('Please specify interested [Endpoints].')
+            logging.error('Please specify [Endpoints].')
             sys.exit(1)
+
+        # Validate if input mapping is configured
+        # when endpoint [traffic by afftrack] is selected
+        for i in endpoints:
+            if i['endpoint'] == 'traffic_by_afftrack':
+                if len(self.input_tables) == 0:
+                    logging.error(
+                        'Endpoint [Traffic - Merchant grouped by Afftrack] requires Input Tables.')
+                    sys.exit(1)
+                else:
+                    for table in self.input_tables:
+                        df = pd.read_csv(table, nrows=1)
+                        required_column = 'merchantID'
+                        if required_column not in df.columns:
+                            logging.error(
+                                f'Required column [{required_column}] is missing in [{table}]')
+                            sys.exit(1)
 
         logging.info(
             "Request date range: {0} - {1}".format(request_date['dateStart'], request_date['dateEnd']))
@@ -329,6 +386,7 @@ class Component(KBCEnvHandler):
         for i in endpoints:
             endpoint = i["endpoint"]
             endpoint_config = config_mapping[endpoint]
+            endpoint_url = endpoint_config['url']
             logging.info('Parsing [{}]...'.format(endpoint_config['name']))
 
             # Handle required parameters
@@ -343,7 +401,7 @@ class Component(KBCEnvHandler):
                     sys.exit(1)
                 keyword_to_request = keyword
 
-            if endpoint == 'merchantTimespan' or endpoint == 'traffic':
+            if endpoint in ['merchantTimespan', 'traffic']:
                 date_range = self.dates_request(request_date['dateStart'], request_date[
                     'dateEnd'
                 ])
@@ -354,15 +412,41 @@ class Component(KBCEnvHandler):
                         'dateEnd': date
                     }
                     request_header, request_body = self.generate_signature(
-                        endpoint=endpoint, date_object=temp_date_obj, keyword=keyword_to_request)
+                        endpoint=endpoint_url, date_object=temp_date_obj, keyword=keyword_to_request)
                     request_url = base_url+'?'+request_body
                     data_in = self.get_request(request_url, request_header)
                     self.output_process(data_in, endpoint,
                                         endpoint_config, date)
 
+            elif endpoint in ['traffic_by_afftrack']:
+                date_range = self.dates_request(
+                    request_date['dateStart'], request_date['dateEnd'])
+
+                # Loop thru Input tables
+                for table in self.input_tables:
+                    merchant_data = pd.read_csv(table)
+
+                    # Every Input Merchant
+                    for merchant in merchant_data['merchantID']:
+                        # Every date in date range
+                        for date in date_range:
+                            temp_date_obj = {
+                                'dateStart': date,
+                                'dateEnd': date,
+                                'merchantId': merchant,
+                                'groupBy': 'afftrack'
+                            }
+                            request_header, request_body = self.generate_signature(
+                                endpoint=endpoint_url, date_object=temp_date_obj, keyword=keyword_to_request)
+                            request_url = base_url+'?'+request_body
+                            data_in = self.get_request(
+                                request_url, request_header)
+                            self.output_process(data_in, endpoint,
+                                                endpoint_config, date, merchant)
+
             else:
                 request_header, request_body = self.generate_signature(
-                    endpoint=endpoint, date_object=date_to_request, keyword=keyword_to_request)
+                    endpoint=endpoint_url, date_object=date_to_request, keyword=keyword_to_request)
                 request_url = base_url+'?'+request_body
                 data_in = self.get_request(request_url, request_header)
                 self.output_process(data_in, endpoint,

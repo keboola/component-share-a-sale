@@ -46,6 +46,7 @@
                             "activitySummary",
                             "merchantTimespan",
                             "traffic",
+                            "traffic_by_afftrack",
                             "getProducts"
                         ],
                         "type": "string",
@@ -55,6 +56,7 @@
                                 "Activity Summary",
                                 "Merchant Timespan Report",
                                 "Traffic",
+                                "Traffic - Merchant grouped by Afftrack",
                                 "Get Products"
                             ]
                         }
@@ -69,11 +71,18 @@
             "title": "Keyword",
             "description": "This is needed for [Get Products] endpoint only. One extractor configuration will only accept one keyword. Input can either be a word or a phrase.",
             "default": "",
-            "propertyOrder": 450
+            "propertyOrder": 500
+        },
+        "incremental_period": {
+            "type": "string",
+            "title": "Incremental Period",
+            "default": "2 days ago",
+            "propertyOrder": 600,
+            "description": "Default: 2 days ago; Users are allowed to define the incremental period they want the extractor to fetch. Please leave this at default settings if adjustments are not necessary."
         },
         "backfill_mode": {
             "title": "Backfill",
-            "propertyOrder": 500,
+            "propertyOrder": 700,
             "type": "object",
             "oneOf": [
                 {
