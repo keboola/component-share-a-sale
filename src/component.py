@@ -67,7 +67,7 @@ if 'KBC_LOGGER_ADDR' in os.environ and 'KBC_LOGGER_PORT' in os.environ:
     # remove default logging to stdout
     logger.removeHandler(logger.handlers[0])
 
-APP_VERSION = '0.0.2'
+APP_VERSION = '0.0.4'
 
 
 class Component(KBCEnvHandler):
@@ -285,7 +285,9 @@ class Component(KBCEnvHandler):
 
         num_of_rows = len(data_in.splitlines())
 
-        if num_of_rows == 1 and endpoint not in ['getProducts', 'merchantTimespan', 'traffic_by_afftrack']:
+        if (num_of_rows == 1
+            and endpoint not in ['getProducts', 'merchantTimespan', 'traffic_by_afftrack']
+                and 'Error Code' in data_in):
             logging.error(
                 'Endpoint request failed: [{}]; Error message: [{}]'.format(endpoint, data_in))
             logging.error('Please contact support.')
