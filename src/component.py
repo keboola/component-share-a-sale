@@ -67,7 +67,7 @@ if 'KBC_LOGGER_ADDR' in os.environ and 'KBC_LOGGER_PORT' in os.environ:
     # remove default logging to stdout
     logger.removeHandler(logger.handlers[0])
 
-APP_VERSION = '0.0.4'
+APP_VERSION = '0.0.5'
 
 
 class Component(KBCEnvHandler):
@@ -90,6 +90,10 @@ class Component(KBCEnvHandler):
         '''
 
         r = requests.get(url=url, headers=header)
+
+        if r.status_code not in [200, 201]:
+            logging.error(f'Request Issue: {r.text}')
+            sys.exit(1)
 
         return r.text
 
