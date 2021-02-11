@@ -273,9 +273,8 @@ class Component(KBCEnvHandler):
 
                 for row in temp_data:
                     logging.info(f'ROW: {row}')
-                    if row.strip() == '':
-                        continue
-                    writer.writerow(data_in)
+                    if row.strip() != '':
+                        writer.writerow(data_in)
                 # f.write(data_in)
         f.close()
 
