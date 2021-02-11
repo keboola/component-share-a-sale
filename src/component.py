@@ -265,11 +265,17 @@ class Component(KBCEnvHandler):
                         row.append(add_merchantId_column)
                     if add_date_column:
                         row.append(add_date_column)
-                    logging.info(f'ROW: [{row}]')
                     writer.writerow(row)
             else:
-                logging.info(data_in)
-                f.write(data_in)
+                # Breaking up all the lines
+                writer = csv.writer(f)
+                temp_data = csv.reader(data_in.splitlines())
+
+                for row in temp_data:
+                    logging.info(f'ROW: {row}')
+                    if row != '':
+                        writer.writerow(data_in)
+                    # f.write(data_in)
         f.close()
 
     def output_process(self, data_in, endpoint, endpoint_config, date_column='', merchantId=''):
