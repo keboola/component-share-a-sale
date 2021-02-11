@@ -265,6 +265,7 @@ class Component(KBCEnvHandler):
                         row.append(add_merchantId_column)
                     if add_date_column:
                         row.append(add_date_column)
+                    logging.info(f'ROW: [{row}]')
                     writer.writerow(row)
             else:
                 f.write(data_in)
@@ -336,8 +337,8 @@ class Component(KBCEnvHandler):
             sys.exit(1)
 
         # Component configuration parameters
-        self.affiliate_id = params['affiliate_id']
-        self.token = params['#token']
+        self.affiliate_id = params[KEY_AFFILIATE_ID]
+        self.token = params[KEY_TOKEN]
         self.secret_key = params['#secret_key']
         endpoints = params['endpoint']
         keyword = params['keyword']
