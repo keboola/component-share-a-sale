@@ -269,13 +269,14 @@ class Component(KBCEnvHandler):
             else:
                 # Breaking up all the lines
                 writer = csv.writer(f)
-                temp_data = csv.reader(data_in.splitlines())
+                temp_data = data_in.splitlines()
 
                 for row in temp_data:
                     logging.info(f'ROW: {row}')
-                    if row != '':
-                        writer.writerow(data_in)
-                    # f.write(data_in)
+                    if row.strip() == '':
+                        continue
+                    writer.writerow(data_in)
+                # f.write(data_in)
         f.close()
 
     def output_process(self, data_in, endpoint, endpoint_config, date_column='', merchantId=''):
