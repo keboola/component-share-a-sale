@@ -268,6 +268,7 @@ class Component(KBCEnvHandler):
                     logging.info(f'ROW: [{row}]')
                     writer.writerow(row)
             else:
+                logging.info(data_in)
                 f.write(data_in)
         f.close()
 
