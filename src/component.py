@@ -268,13 +268,13 @@ class Component(KBCEnvHandler):
                     if add_date_column:
                         row.append(add_date_column)
 
-                    if row: # ensure blank lines are not output
+                    if row:  # ensure blank lines are not output
                         writer.writerow(row)
             else:
 
                 for row in temp_data:
                     logging.info(f'ROW: {row}')
-                    if row: # ensure blank lines are not output
+                    if row:  # ensure blank lines are not output
                         writer.writerow(row)
         f.close()
 
