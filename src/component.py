@@ -240,9 +240,11 @@ class Component(KBCEnvHandler):
             log_msg = '{}-{}'.format(file_name, add_date_column)
         logging.info('Outputting [{}]...'.format(log_msg))
         with open(file_name, 'a') as f:
+            writer = csv.writer(f)
+            temp_data = csv.reader(data_in.splitlines())
+
             if skip_header:
-                writer = csv.writer(f)
-                temp_data = csv.reader(data_in.splitlines())
+
                 header = next(temp_data)
 
                 # Appending parent_id column
@@ -266,16 +268,13 @@ class Component(KBCEnvHandler):
                     if add_date_column:
                         row.append(add_date_column)
 
-                    if row:
+                    if row: # ensure blank lines are not output
                         writer.writerow(row)
             else:
-                # Breaking up all the lines
-                writer = csv.writer(f)
-                temp_data = csv.reader(data_in.splitlines())
 
                 for row in temp_data:
                     logging.info(f'ROW: {row}')
-                    if row:
+                    if row: # ensure blank lines are not output
                         writer.writerow(row)
         f.close()
 
