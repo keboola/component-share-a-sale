@@ -273,7 +273,6 @@ class Component(KBCEnvHandler):
             else:
 
                 for row in temp_data:
-                    logging.info(f'ROW: {row}')
                     if row:  # ensure blank lines are not output
                         writer.writerow(row)
         f.close()
