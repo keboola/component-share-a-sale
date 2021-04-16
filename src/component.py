@@ -360,13 +360,9 @@ class Component(KBCEnvHandler):
                 DEFAULT_TABLE_DESTINATION, endpoint_config['name'])
 
             # check if file exist
-            if os.path.isfile(output_file_name):
-                self.output_file(output_file_name, data_in, skip_header=True)
-
-            else:
-                self.output_file(output_file_name, data_in)
-                self.produce_manifest(
-                    output_file_name, endpoint_config['primary_key'])
+            self.output_file(output_file_name, data_in)
+            self.produce_manifest(
+                output_file_name, endpoint_config['primary_key'])
 
     def run(self):
         '''
