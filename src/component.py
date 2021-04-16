@@ -67,7 +67,7 @@ if 'KBC_LOGGER_ADDR' in os.environ and 'KBC_LOGGER_PORT' in os.environ:
     # remove default logging to stdout
     logger.removeHandler(logger.handlers[0])
 
-APP_VERSION = '0.0.5'
+APP_VERSION = '0.0.6'
 
 
 class Component(KBCEnvHandler):
@@ -163,10 +163,12 @@ class Component(KBCEnvHandler):
     def generate_date(self, backfill_mode, incremental_period):
         '''
         Generate set of startDate and endDate for all requests
+        Outputting a list of start and end date
         '''
 
         if backfill_mode['backfill'] == 'enable':
             logging.info('Backfill Mode: Enable')
+
             # Error prevention
             if backfill_mode['start_date'] == '' or backfill_mode['end_date'] == '':
                 logging.error(
@@ -174,24 +176,54 @@ class Component(KBCEnvHandler):
                 sys.exit(1)
             start_date = dateparser.parse(backfill_mode['start_date'])
             end_date = dateparser.parse(backfill_mode['end_date'])
+
+        elif incremental_period == '':
+            incremental_period = '2 days ago'
+            start_date = dateparser.parse(incremental_period)
+            end_date = dateparser.parse('today')
+
         else:
             # start_date = dateparser.parse('2 days ago')
             start_date = dateparser.parse(incremental_period)
             end_date = dateparser.parse('today')
 
+        # Ensuring the start date is not larger than end date
         if start_date > end_date:
             logging.error(
                 'Start date cannot exceed end date. Please validate your date input.')
             sys.exit(1)
 
+        '''
         start_date_form = start_date.strftime('%m/%d/%Y')
         end_date_form = end_date.strftime('%m/%d/%Y')
         date_object = {
             'dateStart': start_date_form,
             'dateEnd': end_date_form
         }
+        '''
 
-        return date_object
+        date_list = []
+        date_loop = True
+
+        while date_loop:
+
+            start_to_7_days = start_date + datetime.timedelta(days=7)
+            # setting end date
+            if start_to_7_days < end_date:
+                tmp_end_date = start_to_7_days
+            else:
+                tmp_end_date = end_date
+                date_loop = False
+
+            date_object = {
+                'dateStart': start_date.strftime('%m/%d/%Y'),
+                'dateEnd': tmp_end_date.strftime('%m/%d/%Y')
+            }
+
+            date_list.append(date_object)
+            start_date += datetime.timedelta(days=7)
+
+        return date_list
 
     def produce_manifest(self, file_name, primary_key, columns=None):
         """
@@ -326,9 +358,15 @@ class Component(KBCEnvHandler):
         else:
             output_file_name = '{0}{1}.csv'.format(
                 DEFAULT_TABLE_DESTINATION, endpoint_config['name'])
-            self.output_file(output_file_name, data_in)
-            self.produce_manifest(
-                output_file_name, endpoint_config['primary_key'])
+
+            # check if file exist
+            if os.path.isfile(output_file_name):
+                self.output_file(output_file_name, data_in, skip_header=True)
+
+            else:
+                self.output_file(output_file_name, data_in)
+                self.produce_manifest(
+                    output_file_name, endpoint_config['primary_key'])
 
     def run(self):
         '''
@@ -350,7 +388,8 @@ class Component(KBCEnvHandler):
         keyword = params['keyword']
         backfill_mode = params['backfill_mode']
         incremental_period = params[KEY_INCREMENTAL_PERIOD]
-        request_date = self.generate_date(backfill_mode, incremental_period)
+        request_date_range = self.generate_date(
+            backfill_mode, incremental_period)
         base_url = 'https://api.shareasale.com/x.cfm'
         # Input Tables
         self.input_tables = []
@@ -384,82 +423,85 @@ class Component(KBCEnvHandler):
                                 f'Required column [{required_column}] is missing in [{table}]')
                             sys.exit(1)
 
-        logging.info(
-            "Request date range: {0} - {1}".format(request_date['dateStart'], request_date['dateEnd']))
-
         # Fetching mapping configuration required for each endpoint
         with open('src/mapping.json', 'r') as f:
             config_mapping = json.load(f)
 
-        # Endpoint Requests
-        for i in endpoints:
-            endpoint = i["endpoint"]
-            endpoint_config = config_mapping[endpoint]
-            endpoint_url = endpoint_config['url']
-            logging.info('Parsing [{}]...'.format(endpoint_config['name']))
+        # restricting the request date range to 7 days
+        for request_date in request_date_range:
 
-            # Handle required parameters
-            date_to_request = None
-            keyword_to_request = None
-            if endpoint_config['date_required']:
-                date_to_request = request_date
-            if endpoint_config['keyword_required']:
-                if keyword == '':
-                    logging.error(
-                        'A keyword value is required for [{}]. Please enter a keyword or phrase.'.format(endpoint))
-                    sys.exit(1)
-                keyword_to_request = keyword
+            logging.info(
+                "Request date range: {0} - {1}".format(request_date['dateStart'], request_date['dateEnd']))
 
-            if endpoint in ['merchantTimespan', 'traffic']:
-                date_range = self.dates_request(request_date['dateStart'], request_date[
-                    'dateEnd'
-                ])
-                # Looping thru the dates in the date range for daily stats
-                for date in date_range:
-                    temp_date_obj = {
-                        'dateStart': date,
-                        'dateEnd': date
-                    }
+            # Endpoint Requests
+            for i in endpoints:
+                endpoint = i["endpoint"]
+                endpoint_config = config_mapping[endpoint]
+                endpoint_url = endpoint_config['url']
+                logging.info('Parsing [{}]...'.format(endpoint_config['name']))
+
+                # Handle required parameters
+                date_to_request = None
+                keyword_to_request = None
+                if endpoint_config['date_required']:
+                    date_to_request = request_date
+                if endpoint_config['keyword_required']:
+                    if keyword == '':
+                        logging.error(
+                            'A keyword value is required for [{}]. Please enter a keyword or phrase.'.format(endpoint))
+                        sys.exit(1)
+                    keyword_to_request = keyword
+
+                if endpoint in ['merchantTimespan', 'traffic']:
+                    date_range = self.dates_request(request_date['dateStart'], request_date[
+                        'dateEnd'
+                    ])
+                    # Looping thru the dates in the date range for daily stats
+                    for date in date_range:
+                        temp_date_obj = {
+                            'dateStart': date,
+                            'dateEnd': date
+                        }
+                        request_header, request_body = self.generate_signature(
+                            endpoint=endpoint_url, date_object=temp_date_obj, keyword=keyword_to_request)
+                        request_url = base_url+'?'+request_body
+                        data_in = self.get_request(request_url, request_header)
+                        self.output_process(data_in, endpoint,
+                                            endpoint_config, date)
+
+                elif endpoint in ['traffic_by_afftrack']:
+                    date_range = self.dates_request(
+                        request_date['dateStart'], request_date['dateEnd'])
+
+                    # Loop thru Input tables
+                    for table in self.input_tables:
+                        merchant_data = pd.read_csv(table)
+
+                        # Every Input Merchant
+                        for merchant in merchant_data['merchantID']:
+                            # Every date in date range
+                            for date in date_range:
+                                temp_date_obj = {
+                                    'dateStart': date,
+                                    'dateEnd': date,
+                                    'merchantId': merchant,
+                                    'groupBy': 'afftrack'
+                                }
+                                request_header, request_body = self.generate_signature(
+                                    endpoint=endpoint_url, date_object=temp_date_obj, keyword=keyword_to_request)
+                                request_url = base_url+'?'+request_body
+                                data_in = self.get_request(
+                                    request_url, request_header)
+                                self.output_process(data_in, endpoint,
+                                                    endpoint_config, date, merchant)
+
+                else:
                     request_header, request_body = self.generate_signature(
-                        endpoint=endpoint_url, date_object=temp_date_obj, keyword=keyword_to_request)
+                        endpoint=endpoint_url, date_object=date_to_request, keyword=keyword_to_request)
                     request_url = base_url+'?'+request_body
                     data_in = self.get_request(request_url, request_header)
                     self.output_process(data_in, endpoint,
-                                        endpoint_config, date)
-
-            elif endpoint in ['traffic_by_afftrack']:
-                date_range = self.dates_request(
-                    request_date['dateStart'], request_date['dateEnd'])
-
-                # Loop thru Input tables
-                for table in self.input_tables:
-                    merchant_data = pd.read_csv(table)
-
-                    # Every Input Merchant
-                    for merchant in merchant_data['merchantID']:
-                        # Every date in date range
-                        for date in date_range:
-                            temp_date_obj = {
-                                'dateStart': date,
-                                'dateEnd': date,
-                                'merchantId': merchant,
-                                'groupBy': 'afftrack'
-                            }
-                            request_header, request_body = self.generate_signature(
-                                endpoint=endpoint_url, date_object=temp_date_obj, keyword=keyword_to_request)
-                            request_url = base_url+'?'+request_body
-                            data_in = self.get_request(
-                                request_url, request_header)
-                            self.output_process(data_in, endpoint,
-                                                endpoint_config, date, merchant)
-
-            else:
-                request_header, request_body = self.generate_signature(
-                    endpoint=endpoint_url, date_object=date_to_request, keyword=keyword_to_request)
-                request_url = base_url+'?'+request_body
-                data_in = self.get_request(request_url, request_header)
-                self.output_process(data_in, endpoint,
-                                    endpoint_config, keyword_to_request)
+                                        endpoint_config, keyword_to_request)
 
         logging.info("Extraction finished")
 
