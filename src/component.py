@@ -271,6 +271,10 @@ class Component(KBCEnvHandler):
         if add_date_column:
             log_msg = '{}-{}'.format(file_name, add_date_column)
         logging.info('Outputting [{}]...'.format(log_msg))
+
+        # Check if file exist
+        file_exist = os.path.isfile(file_name)
+
         with open(file_name, 'a') as f:
             writer = csv.writer(f)
             temp_data = csv.reader(data_in.splitlines())
@@ -303,6 +307,10 @@ class Component(KBCEnvHandler):
                     if row:  # ensure blank lines are not output
                         writer.writerow(row)
             else:
+
+                # if table exist, skipping header
+                if file_exist:
+                    next(temp_data)
 
                 for row in temp_data:
                     if row:  # ensure blank lines are not output
