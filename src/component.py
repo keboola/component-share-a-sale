@@ -22,7 +22,6 @@ from kbc.env_handler import KBCEnvHandler
 from kbc.result import KBCTableDef  # noqa
 from kbc.result import ResultWriter  # noqa
 
-
 # configuration variables
 KEY_AFFILIATE_ID = 'affiliate_id'
 KEY_TOKEN = '#token'
@@ -56,7 +55,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S")
 
 if 'KBC_LOGGER_ADDR' in os.environ and 'KBC_LOGGER_PORT' in os.environ:
-
     logger = logging.getLogger()
     logging_gelf_handler = logging_gelf.handlers.GELFTCPSocketHandler(
         host=os.getenv('KBC_LOGGER_ADDR'), port=int(os.getenv('KBC_LOGGER_PORT')))
@@ -146,7 +144,7 @@ class Component(KBCEnvHandler):
         dates = []
         start_date_form = dateparser.parse(start_date)
         end_date_form = dateparser.parse(end_date)
-        day_diff = (end_date_form-start_date_form).days
+        day_diff = (end_date_form - start_date_form).days
         temp_date = start_date_form
         day_n = 0
         if day_diff == 0:
@@ -291,10 +289,8 @@ class Component(KBCEnvHandler):
 
                 # Header Validation
                 if len(header) != len(expected_header):
-                    logging.error(
-                        "There are more columns than expected columns for [{}]".format(file_name))
-                    logging.error("New columns: {}".format(
-                        header-expected_header))
+                    logging.error("There are more columns than expected columns for [{}]".format(file_name))
+                    logging.error(f"Expected columns are {expected_header} real columns are {header}")
                     logging.error("Please contact support.")
                     sys.exit(1)
 
@@ -337,7 +333,7 @@ class Component(KBCEnvHandler):
         num_of_rows = len(data_in.splitlines())
 
         if (num_of_rows == 1
-            and endpoint not in ['getProducts', 'merchantTimespan', 'traffic_by_afftrack']
+                and endpoint not in ['getProducts', 'merchantTimespan', 'traffic_by_afftrack']
                 and 'Error Code' in data_in):
             logging.error(
                 'Endpoint request failed: [{}]; Error message: [{}]'.format(endpoint, data_in))
@@ -468,7 +464,7 @@ class Component(KBCEnvHandler):
                         }
                         request_header, request_body = self.generate_signature(
                             endpoint=endpoint_url, date_object=temp_date_obj, keyword=keyword_to_request)
-                        request_url = base_url+'?'+request_body
+                        request_url = base_url + '?' + request_body
                         data_in = self.get_request(request_url, request_header)
                         self.output_process(data_in, endpoint,
                                             endpoint_config, date)
@@ -493,7 +489,7 @@ class Component(KBCEnvHandler):
                                 }
                                 request_header, request_body = self.generate_signature(
                                     endpoint=endpoint_url, date_object=temp_date_obj, keyword=keyword_to_request)
-                                request_url = base_url+'?'+request_body
+                                request_url = base_url + '?' + request_body
                                 data_in = self.get_request(
                                     request_url, request_header)
                                 self.output_process(data_in, endpoint,
@@ -502,7 +498,7 @@ class Component(KBCEnvHandler):
                 else:
                     request_header, request_body = self.generate_signature(
                         endpoint=endpoint_url, date_object=date_to_request, keyword=keyword_to_request)
-                    request_url = base_url+'?'+request_body
+                    request_url = base_url + '?' + request_body
                     data_in = self.get_request(request_url, request_header)
                     self.output_process(data_in, endpoint,
                                         endpoint_config, keyword_to_request)
